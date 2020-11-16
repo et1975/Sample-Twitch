@@ -2,15 +2,13 @@ namespace Warehouse.Components.StateMachines
 {
     using System;
     using Automatonymous;
-    using MassTransit.MongoDbIntegration.Saga;
-    using MongoDB.Bson.Serialization.Attributes;
-
+    using MassTransit.Saga;
 
     public class AllocationState :
         SagaStateMachineInstance,
-        IVersionedSaga
+        ISagaVersion
     {
-        [BsonId]
+        
         public Guid CorrelationId { get; set; }
 
         public string CurrentState { get; set; }
@@ -18,5 +16,6 @@ namespace Warehouse.Components.StateMachines
         public Guid? HoldDurationToken { get; set; }
 
         public int Version { get; set; }
-    }
+
+        public string ETag { get; set; }    }
 }

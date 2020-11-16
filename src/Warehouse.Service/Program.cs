@@ -8,8 +8,7 @@
     using Components.StateMachines;
     using MassTransit;
     using MassTransit.Definition;
-    using MassTransit.MongoDbIntegration;
-    using MassTransit.RabbitMqTransport;
+    using Microsoft.Azure.Cosmos.Table;
     using Microsoft.ApplicationInsights;
     using Microsoft.ApplicationInsights.DependencyCollector;
     using Microsoft.ApplicationInsights.Extensibility;
@@ -53,10 +52,12 @@
                     _module.IncludeDiagnosticSourceActivities.Add("MassTransit");
 
                     TelemetryConfiguration configuration = TelemetryConfiguration.CreateDefault();
-                    configuration.InstrumentationKey = "6b4c6c82-3250-4170-97d3-245ee1449278";
+                    configuration.InstrumentationKey = "YOUR_AI_KEY";
                     configuration.TelemetryInitializers.Add(new HttpDependenciesParsingTelemetryInitializer());
 
                     _telemetryClient = new TelemetryClient(configuration);
+                    var storageAccount = CloudStorageAccount.Parse("DefaultEndpointsProtocol=https;AccountName=YOUR_SA;AccountKey=YOUR_KEY;EndpointSuffix=core.windows.net");
+                    var tableClient = storageAccount.CreateCloudTableClient();
 
                     _module.Initialize(configuration);
 
@@ -65,13 +66,15 @@
                     {
                         cfg.AddConsumersFromNamespaceContaining<AllocateInventoryConsumer>();
                         cfg.AddSagaStateMachine<AllocationStateMachine, AllocationState>(typeof(AllocateStateMachineDefinition))
-                            .MongoDbRepository(r =>
+                            .AzureTableRepository(r =>
                             {
-                                r.Connection = "mongodb://127.0.0.1";
-                                r.DatabaseName = "allocations";
+                                r.ConnectionFactory(() => { 
+                                    var table = tableClient.GetTableReference("Allocations");
+                                    table.CreateIfNotExists();
+                                    return table; });
                             });
 
-                        cfg.UsingRabbitMq(ConfigureBus);
+                        cfg.UsingAzureServiceBus(ConfigureBus);
                     });
 
                     services.AddHostedService<MassTransitConsoleHostedService>();
@@ -93,9 +96,10 @@
             Log.CloseAndFlush();
         }
 
-        static void ConfigureBus(IBusRegistrationContext busRegistrationContext, IRabbitMqBusFactoryConfigurator configurator)
+        static void ConfigureBus(IBusRegistrationContext busRegistrationContext, MassTransit.Azure.ServiceBus.Core.IServiceBusBusFactoryConfigurator configurator)
         {
-            configurator.UseMessageScheduler(new Uri("queue:quartz"));
+            configurator.Host("Endpoint=YOUR_SB_CS");
+            configurator.UseServiceBusMessageScheduler();
 
             configurator.ConfigureEndpoints(busRegistrationContext);
         }

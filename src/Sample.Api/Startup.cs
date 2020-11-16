@@ -5,7 +5,6 @@ namespace Sample.Api
     using Contracts;
     using MassTransit;
     using MassTransit.Definition;
-    using MassTransit.MongoDbIntegration.MessageData;
     using Microsoft.ApplicationInsights.DependencyCollector;
     using Microsoft.AspNetCore.Builder;
     using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -41,13 +40,15 @@ namespace Sample.Api
             services.TryAddSingleton(KebabCaseEndpointNameFormatter.Instance);
             services.AddMassTransit(mt =>
             {
-                mt.UsingRabbitMq((context, cfg) =>
+                mt.UsingAzureServiceBus((context, cfg) =>
                 {
                     MessageDataDefaults.ExtraTimeToLive = TimeSpan.FromDays(1);
                     MessageDataDefaults.Threshold = 2000;
                     MessageDataDefaults.AlwaysWriteToRepository = false;
 
-                    cfg.UseMessageData(new MongoDbMessageDataRepository("mongodb://127.0.0.1", "attachments"));
+                    cfg.Host("Endpoint=YOUR_SB_CS");
+                    cfg.UseServiceBusMessageScheduler();
+                    // cfg.UseMessageData(new MongoDbMessageDataRepository("mongodb://127.0.0.1", "attachments"));
                 });
 
                 mt.AddRequestClient<SubmitOrder>(new Uri($"queue:{KebabCaseEndpointNameFormatter.Instance.Consumer<SubmitOrderConsumer>()}"));

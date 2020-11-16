@@ -11,7 +11,8 @@
   <ItemGroup>
     <PackageReference Include="MassTransit" Version="7.0.0" />
     <PackageReference Include="MassTransit.Analyzers" Version="7.0.0" />
-    <PackageReference Include="MassTransit.MongoDb" Version="7.0.0" />
+    <PackageReference Include="MassTransit.Azure.Storage" Version="7.0.0" />
+    <PackageReference Include="MassTransit.Azure.Cosmos.Table" Version="7.0.0" />
   </ItemGroup>
 
 </Project>

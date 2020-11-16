@@ -19,42 +19,42 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./grafana/dashboards.yml:/etc/grafana/provisioning/dashboards/rabbitmq.yaml
+    #   - ./grafana/dashboards.yml:/etc/grafana/provisioning/dashboards/rabbitmq.yaml
       - ./grafana/datasources.yml:/etc/grafana/provisioning/datasources/prometheus.yaml
       - ./grafana/dashboards:/dashboards
-  rabbitmq:
-    image: masstransit/rabbitmq:latest
-    networks:
-     - twitch
-    ports:
-     - "5672:5672"
-     - "15672:15672"
-     - "15692:15692"
-    healthcheck:
-        timeout: 5s
-        interval: 5s
-        retries: 10
-        test:
-          - "CMD"
-          - "rabbitmqctl"
-          - "status" 
-  sqlserver:
-    image: masstransit/sqlserver-quartz
-    networks:
-     - twitch
-    ports:
-      - 1433:1433
-  quartz:
-    image: masstransit/quartz:latest
-    environment:
-      ApplicationInsights__InstrumentationKey: '6b4c6c82-3250-4170-97d3-245ee1449278'
-      MT_Prometheus: 'quartz'
-      MT_Scheduler: 'quartz'
-      MT_Quartz__ConnectionString: 'Server=tcp:sqlserver;Database=quartznet;Persist Security Info=False;User ID=sa;Password=Quartz!DockerP4ss;Encrypt=False;TrustServerCertificate=True;'
-    networks:
-     - twitch
-    ports:
-     - "5002:80"
+#   rabbitmq:
+#     image: masstransit/rabbitmq:latest
+#     networks:
+#      - twitch
+#     ports:
+#      - "5672:5672"
+#      - "15672:15672"
+#      - "15692:15692"
+#     healthcheck:
+#         timeout: 5s
+#         interval: 5s
+#         retries: 10
+#         test:
+#           - "CMD"
+#           - "rabbitmqctl"
+#           - "status" 
+#   sqlserver:
+#     image: masstransit/sqlserver-quartz
+#     networks:
+#      - twitch
+#     ports:
+#       - 1433:1433
+#   quartz:
+#     image: masstransit/quartz:latest
+#     environment:
+#       ApplicationInsights__InstrumentationKey: 'YOUR_AI_KEY'
+#       MT_Prometheus: 'quartz'
+#       MT_Scheduler: 'quartz'
+#       MT_Quartz__ConnectionString: 'Server=tcp:sqlserver;Database=quartznet;Persist Security Info=False;User ID=sa;Password=Quartz!DockerP4ss;Encrypt=False;TrustServerCertificate=True;'
+#     networks:
+#      - twitch
+#     ports:
+#      - "5002:80"
   redis:
     image: redis
     networks:
@@ -73,7 +73,7 @@ services:
       context: ./src
       dockerfile: Dockerfile-warehouse
     environment:
-      - ApplicationInsights__InstrumentationKey=6b4c6c82-3250-4170-97d3-245ee1449278
+      - ApplicationInsights__InstrumentationKey=YOUR_AI_KEY
       - MT_Prometheus=warehouse
       - MT_Scheduler=quartz
     networks:
@@ -86,7 +86,7 @@ services:
       context: ./src
       dockerfile: Dockerfile-sample
     environment:
-      - ApplicationInsights__InstrumentationKey=6b4c6c82-3250-4170-97d3-245ee1449278
+      - ApplicationInsights__InstrumentationKey=YOUR_AI_KEY
       - MT_Prometheus=sample
       - MT_Scheduler=quartz
     networks:

@@ -5,6 +5,7 @@
     using MassTransit;
     using MassTransit.ExtensionsDependencyInjectionIntegration;
     using MassTransit.Platform.Abstractions;
+    using Microsoft.Azure.Cosmos.Table;
     using Microsoft.Extensions.DependencyInjection;
 
 
@@ -13,12 +14,13 @@
     {
         public void ConfigureMassTransit(IServiceCollectionBusConfigurator configurator, IServiceCollection services)
         {
+            var storageAccount = CloudStorageAccount.Parse("DefaultEndpointsProtocol=https;AccountName=YOUR_SA;AccountKey=YOUR_KEY;EndpointSuffix=core.windows.net");
+            var tableClient = storageAccount.CreateCloudTableClient();
             configurator.AddConsumersFromNamespaceContaining<AllocateInventoryConsumer>();
             configurator.AddSagaStateMachine<AllocationStateMachine, AllocationState>(typeof(AllocateStateMachineDefinition))
-                .MongoDbRepository(r =>
+                .AzureTableRepository(r =>
                 {
-                    r.Connection = "mongodb://mongo";
-                    r.DatabaseName = "allocations";
+                    r.ConnectionFactory(() => tableClient.GetTableReference("Allocations"));
                 });
         }
 

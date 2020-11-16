@@ -12,8 +12,7 @@
     using MassTransit;
     using MassTransit.Courier.Contracts;
     using MassTransit.Definition;
-    using MassTransit.MongoDbIntegration.MessageData;
-    using MassTransit.RabbitMqTransport;
+    using MassTransit.Azure.Table.Saga;
     using Microsoft.ApplicationInsights;
     using Microsoft.ApplicationInsights.DependencyCollector;
     using Microsoft.ApplicationInsights.Extensibility;
@@ -25,7 +24,7 @@
     using Serilog;
     using Serilog.Events;
     using Warehouse.Contracts;
-
+    using Microsoft.Azure.Cosmos.Table;
 
     class Program
     {
@@ -58,10 +57,12 @@
                     _module.IncludeDiagnosticSourceActivities.Add("MassTransit");
 
                     TelemetryConfiguration configuration = TelemetryConfiguration.CreateDefault();
-                    configuration.InstrumentationKey = "6b4c6c82-3250-4170-97d3-245ee1449278";
+                    configuration.InstrumentationKey = "YOUR_AI_KEY";
                     configuration.TelemetryInitializers.Add(new HttpDependenciesParsingTelemetryInitializer());
 
                     _telemetryClient = new TelemetryClient(configuration);
+                    var storageAccount = CloudStorageAccount.Parse("DefaultEndpointsProtocol=https;AccountName=YOUR_SA;AccountKey=YOUR_KEY;EndpointSuffix=core.windows.net");
+                    var tableClient = storageAccount.CreateCloudTableClient();
 
                     _module.Initialize(configuration);
 
@@ -76,13 +77,15 @@
                         cfg.AddActivitiesFromNamespaceContaining<AllocateInventoryActivity>();
 
                         cfg.AddSagaStateMachine<OrderStateMachine, OrderState>(typeof(OrderStateMachineDefinition))
-                            .MongoDbRepository(r =>
+                            .AzureTableRepository(r =>
                             {
-                                r.Connection = "mongodb://127.0.0.1";
-                                r.DatabaseName = "orders";
+                                r.ConnectionFactory(() => { 
+                                    var table = tableClient.GetTableReference("Orders");
+                                    table.CreateIfNotExists();
+                                    return table; });
                             });
 
-                        cfg.UsingRabbitMq(ConfigureBus);
+                        cfg.UsingAzureServiceBus(ConfigureBus);
 
                         cfg.AddRequestClient<AllocateInventory>();
                     });
@@ -106,10 +109,12 @@
             Log.CloseAndFlush();
         }
 
-        static void ConfigureBus(IBusRegistrationContext context, IRabbitMqBusFactoryConfigurator configurator)
+        static void ConfigureBus(IBusRegistrationContext context, MassTransit.Azure.ServiceBus.Core.IServiceBusBusFactoryConfigurator configurator)
         {
-            configurator.UseMessageData(new MongoDbMessageDataRepository("mongodb://127.0.0.1", "attachments"));
-            configurator.UseMessageScheduler(new Uri("queue:quartz"));
+            // configurator.UseMessageData(new MongoDbMessageDataRepository("mongodb://127.0.0.1", "attachments"));
+            // configurator.UseMessageScheduler(new Uri("queue:quartz"));
+            configurator.Host("Endpoint=YOUR_SB_CS");
+            configurator.UseServiceBusMessageScheduler();
 
             configurator.ReceiveEndpoint(KebabCaseEndpointNameFormatter.Instance.Consumer<RoutingSlipBatchEventConsumer>(), e =>
             {

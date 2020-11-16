@@ -7,7 +7,7 @@
     using Components.StateMachines.OrderStateMachineActivities;
     using MassTransit;
     using MassTransit.ExtensionsDependencyInjectionIntegration;
-    using MassTransit.MongoDbIntegration.MessageData;
+    using Microsoft.Azure.Cosmos.Table;
     using MassTransit.Platform.Abstractions;
     using Microsoft.Extensions.DependencyInjection;
     using Warehouse.Contracts;
@@ -23,12 +23,13 @@
             configurator.AddConsumersFromNamespaceContaining<SubmitOrderConsumer>();
             configurator.AddActivitiesFromNamespaceContaining<AllocateInventoryActivity>();
             configurator.AddConsumersFromNamespaceContaining<RoutingSlipBatchEventConsumer>();
+            var storageAccount = CloudStorageAccount.Parse("DefaultEndpointsProtocol=https;AccountName=YOUR_SA;AccountKey=YOUR_KEY;EndpointSuffix=core.windows.net");
+            var tableClient = storageAccount.CreateCloudTableClient();
 
             configurator.AddSagaStateMachine<OrderStateMachine, OrderState>(typeof(OrderStateMachineDefinition))
-                .MongoDbRepository(r =>
+                .AzureTableRepository(r =>
                 {
-                    r.Connection = "mongodb://mongo";
-                    r.DatabaseName = "orders";
+                    r.ConnectionFactory(() => tableClient.GetTableReference("Orders"));
                 });
 
             configurator.AddRequestClient<AllocateInventory>();
@@ -38,7 +39,7 @@
             IBusRegistrationContext context)
             where TEndpointConfigurator : IReceiveEndpointConfigurator
         {
-            configurator.UseMessageData(new MongoDbMessageDataRepository("mongodb://mongo", "attachments"));
+            // configurator.UseMessageData(new AzureStorageMessageDataRepository("mongodb://mongo", "attachments"));
         }
     }
 }

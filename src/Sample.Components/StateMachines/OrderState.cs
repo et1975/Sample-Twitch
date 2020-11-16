@@ -2,15 +2,12 @@ namespace Sample.Components.StateMachines
 {
     using System;
     using Automatonymous;
-    using MassTransit.MongoDbIntegration.Saga;
-    using MongoDB.Bson.Serialization.Attributes;
-
+    using MassTransit.Saga;
 
     public class OrderState :
         SagaStateMachineInstance,
-        IVersionedSaga
+        ISagaVersion
     {
-        [BsonId]
         public Guid CorrelationId { get; set; }
 
         public int Version { get; set; }
@@ -25,5 +22,6 @@ namespace Sample.Components.StateMachines
         public DateTime? SubmitDate { get; set; }
         public DateTime? Updated { get; set; }
 
+        public string ETag { get; set; }
     }
 }
